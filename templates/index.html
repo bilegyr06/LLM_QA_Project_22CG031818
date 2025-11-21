@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Knowledge Base</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="glass-card">
+            <h1>AI Knowledge Base</h1>
+            <p class="subtitle">Ask anything, get instant answers powered by Gemini</p>
+            
+            <form id="qa-form">
+                <div class="input-group">
+                    <textarea id="question" name="question" placeholder="What would you like to know today?" required></textarea>
+                </div>
+                <button type="submit" id="submit-btn">
+                    <span class="btn-text">Ask Question</span>
+                </button>
+                <div class="loader" id="loader">
+                    <div class="spinner"></div>
+                </div>
+            </form>
+
+            <div class="result-section" id="result-section">
+                <div class="label">Processed Query</div>
+                <div class="processed-text" id="processed-query"></div>
+                
+                <div class="label">AI Response</div>
+                <div class="answer-box" id="answer-box"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('qa-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const question = document.getElementById('question').value;
+            const submitBtn = document.getElementById('submit-btn');
+            const loader = document.getElementById('loader');
+            const resultSection = document.getElementById('result-section');
+            const btnText = submitBtn.querySelector('.btn-text');
+
+            // UI State: Loading
+            submitBtn.disabled = true;
+            submitBtn.style.opacity = '0.7';
+            btnText.textContent = 'Thinking...';
+            loader.classList.add('active');
+            resultSection.classList.remove('visible');
+
+            try {
+                const response = await fetch('/ask', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ question: question }),
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    document.getElementById('processed-query').textContent = data.processed_question;
+                    // Convert newlines to <br> for display if needed, or just rely on CSS whitespace
+                    document.getElementById('answer-box').innerText = data.answer; 
+                    resultSection.classList.add('visible');
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('An error occurred. Please try again.');
+            } finally {
+                // UI State: Reset
+                submitBtn.disabled = false;
+                submitBtn.style.opacity = '1';
+                btnText.textContent = 'Ask Question';
+                loader.classList.remove('active');
+            }
+        });
+    </script>
+</body>
+</html>

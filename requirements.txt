@@ -1,0 +1,4 @@
+flask
+google-generativeai
+python-dotenv
+gunicorn>=21.2.0
