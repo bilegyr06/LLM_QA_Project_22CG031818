@@ -1,35 +1,37 @@
-from flask import Flask, render_template, request, jsonify
-from LLM_QA_CLI import preprocess_text, query_llm
-import os
+from fastapi import FastAPI, Request
+from fastapi.templating import Jinja2Templates
+from fastapi.responses import JSONResponse
+from fastapi import Body
+from fastapi.staticfiles import StaticFiles
+from LLM_QA_CLI import preprocess_text, query_llm  # Your existing functions
 
-app = Flask(__name__)
+app = FastAPI(title="LLM Q&A Web App (Gemini-Powered)")
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
-@app.route('/')
-def home():
-    return render_template('index.html')
+# Templates (place index.html in a 'templates' folder)
+templates = Jinja2Templates(directory="templates")
 
-@app.route('/ask', methods=['POST'])
-def ask():
-    data = request.get_json()
-    question = data.get('question', '')
+@app.get("/")
+async def home(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
+
+@app.post("/ask")
+async def ask(data: dict = Body(...)):
+    question = data.get('question', '').strip()
     
     if not question:
-        return jsonify({'error': 'No question provided'}), 400
+        return JSONResponse(
+            status_code=400,
+            content={'error': 'No question provided'}
+        )
 
-    # Process the question
+    # Process the question (same as CLI)
     processed_question = preprocess_text(question)
     
-    # Get answer from LLM
-    # Note: We are sending the processed question to the LLM as per the CLI logic we established.
-    # If you prefer sending the raw question for better quality, you can change this to query_llm(question)
+    # Query Gemini LLM
     answer = query_llm(processed_question)
     
-    return jsonify({
+    return {
         'processed_question': processed_question,
         'answer': answer
-    })
-
-if __name__ == '__main__':
-    # Run the app
-    # debug=True for development
-    app.run(debug=True, port=5000)
+    }
