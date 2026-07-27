@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
 </head>
 <body>
     <div class="container">
@@ -63,7 +63,12 @@
                     body: JSON.stringify({ question: question }),
                 });
 
-                const data = await response.json();
+                let data;
+                try {
+                    data = await response.json();
+                } catch (parseError) {
+                    data = { error: 'The server returned an invalid response.' };
+                }
 
                 if (response.ok) {
                     document.getElementById('processed-query').textContent = data.processed_question;
@@ -71,10 +76,14 @@
                     document.getElementById('answer-box').innerText = data.answer; 
                     resultSection.classList.add('visible');
                 } else {
-                    alert('Error: ' + data.error);
+                    document.getElementById('processed-query').textContent = '';
+                    document.getElementById('answer-box').innerText = data.error || ('Request failed with status ' + response.status);
+                    resultSection.classList.add('visible');
                 }
             } catch (error) {
-                alert('An error occurred. Please try again.');
+                document.getElementById('processed-query').textContent = '';
+                document.getElementById('answer-box').innerText = 'Unable to reach the server. Make sure the FastAPI app is running.';
+                resultSection.classList.add('visible');
             } finally {
                 // UI State: Reset
                 submitBtn.disabled = false;

@@ -1,7 +1,16 @@
 import os
 import string
-import google.generativeai as genai
-from dotenv import load_dotenv
+
+try:
+    import google.generativeai as genai
+except ModuleNotFoundError:
+    genai = None
+
+try:
+    from dotenv import load_dotenv
+except ModuleNotFoundError:
+    def load_dotenv():
+        return False
 
 # Load environment variables
 load_dotenv()
@@ -20,16 +29,34 @@ def query_llm(prompt):
     """
     Sends the prompt to the Gemini API and returns the response.
     """
+    if genai is None:
+        return "Error: google-generativeai is not installed in this Python environment."
+
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         return "Error: GEMINI_API_KEY environment variable not found. Please set it in a .env file."
 
     try:
         genai.configure(api_key=api_key)
-        # Using gemini-1.5-flash as it is a current and fast model
-        model = genai.GenerativeModel('models/gemini-2.5-flash')
-        response = model.generate_content(prompt)
-        return response.text
+
+        # Try a small set of supported Gemini Flash models to avoid 404s
+        # when one model is deprecated or unavailable for a given account.
+        candidate_models = [
+            'models/gemini-2.0-flash',
+            'models/gemini-2.0-flash-lite',
+            'models/gemini-1.5-flash',
+        ]
+
+        last_error = None
+        for model_name in candidate_models:
+            try:
+                model = genai.GenerativeModel(model_name)
+                response = model.generate_content(prompt)
+                return response.text
+            except Exception as exc:
+                last_error = exc
+
+        return f"Error communicating with LLM API: {str(last_error)}"
     except Exception as e:
         return f"Error communicating with LLM API: {str(e)}"
 
